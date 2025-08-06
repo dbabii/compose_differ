@@ -54,14 +54,17 @@ while True:
           continue
      
      f1 = return_value(first_release)
+ 
      # create a dir
-     os.mkdir(return_value(first_release))
+     os.mkdir(f1)
+ 
      # create a path where json will be saved
-     file_path_f1 = os.path.join(return_value(first_release), list_of_packages)
+     file_path_f1 = os.path.join(f1, list_of_packages)
+ 
      # download for first release
      urllib.request.urlretrieve(url_of_release(f1), file_path_f1)
 
-     if return_value(first_release) == "Exit":
+     if f1 == "Exit":
           break
     #  remove_first = list_of_releases.pop(first_release - 1)
      
@@ -74,15 +77,17 @@ while True:
      f2 = return_value(second_release)
           
      # create a second dir
-     os.mkdir(return_value(second_release))
+     os.mkdir(f2)
      
      # create a path where json will be saved
-     file_path_f2 = os.path.join(return_value(first_release), list_of_packages)
+     file_path_f2 = os.path.join(f2, list_of_packages)
      
      # download for second release
-     urllib.request.urlretrieve(url_of_release(f1), file_path_f2)
+     urllib.request.urlretrieve(url_of_release(f2), file_path_f2)
      
-     if return_value(second_release) == "Exit":
+     if f2 == "Exit":
           break
      
      break
+
+
