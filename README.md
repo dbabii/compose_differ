@@ -1,4 +1,5 @@
 Differ Compose
+
 Python CLI tool that helps to identify what packages have changed between two releases
 
 
@@ -12,6 +13,7 @@ Task:
 Execution:
 1. Get a list of directories from the URL: https://kojipkgs.fedoraproject.org/compose/rawhide/
     - Ignore the "latest" dir
+    - Making the list of dirs by using RegEx
 2. Rename the original name of each entity to the day only:
     - 20250215.n.0
     - 20250216.n.0
@@ -22,3 +24,4 @@ Execution:
 5. Download rpms.json
     - perhaps, it would be nice if there will be a progress bar of downloading
 6. Making a comparison file in the above level of downloaded dirs 
+7. Removing created dirs and files and remaining only comparing file
