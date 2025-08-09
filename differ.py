@@ -167,10 +167,10 @@ while True:
           removed = [name for name in versions_f1 if name[0] not in names_in_list2]
           added = [name for name in versions_f2 if name[0] not in names_in_list1]
           for i in added:
-               f.write(f"{i[0]}\tAdded\t({i[0]}{i[1]})\n")
+               f.write(f"{i[0]}\tAdded\t({i[0]}-{i[1]})\n")
           
           for i in removed:
-               f.write(f"{i[0]}\tRemoved\t({i[0]}{i[1]})\n")
+               f.write(f"{i[0]}\tRemoved\t({i[0]}-{i[1]})\n")
 
 
           for i,j in zip(versions_f1, versions_f2):
