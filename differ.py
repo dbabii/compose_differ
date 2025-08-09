@@ -100,7 +100,16 @@ while True:
 
      termination(f1)
      
+     try:
+          urllib.request.urlopen(url_of_release(f1))
+     except urllib.error.HTTPError:
+          print("It's minor release, there is no metadata package")  
+          list_of_releases.pop(first_release - 1)
+          print_menu()
+          continue
+
      remove_first = list_of_releases.pop(first_release - 1)
+
      print_menu()
      try:
         second_release = int(input("Select the second release: "))
@@ -111,6 +120,14 @@ while True:
      f2 = return_value(second_release)
 
      termination(f2)
+
+     try:
+          urllib.request.urlopen(url_of_release(f2))
+     except urllib.error.HTTPError:
+          print("It's minor release, there is no metadata package")  
+          list_of_releases.pop(second_release - 1)
+          print_menu()
+          continue
 
      print(f"Selected releases:\n{f1} and {f2}")
      # f1 is old release, f2 is latest
@@ -175,9 +192,8 @@ while True:
                               break
                          elif k > m:
                               f.write(f'{i[0]}\tversion is downgrade: {i[1]} -> {j[1]}\n')
-     
      with open(out_file, "r") as f:
-          print(f.read())
+          f.read()
 
      # clean up
      os.remove(file_name)
