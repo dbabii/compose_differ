@@ -168,11 +168,22 @@ with open(out_file, "w") as f:
     names_in_list2 = [name[0] for name in versions_f2]
     removed = [name for name in versions_f1 if name[0] not in names_in_list2]
     added = [name for name in versions_f2 if name[0] not in names_in_list1]
+    # Creating Added list of packages to current release 
     for i in added:
         f.write(f"{i[0]}\tAdded\t({i[0]}-{i[1]})\n")
 
+    # Creating Removed list of packages from current release  
     for i in removed:
         f.write(f"{i[0]}\tRemoved\t({i[0]}-{i[1]})\n")
+
+    # Creating a two list without Added and Removed lists for comparing versions
+    previous_release = [package for package in versions_f1 
+                        if package[0] not in added]
+    previous_release.sort()
+    # try to make sort in one command, if doesn't work - make additional vars
+    current_release = [package for package in versions_f2
+                        if package[0] not in removed]
+    current_release.sort()
 
     for i,j in zip(versions_f1, versions_f2):
         # decompose version to compare between each other
