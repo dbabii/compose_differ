@@ -75,18 +75,23 @@ def determine_release(release1, release2):
      
      return old, new
 
-def load_packages(path, List):
-     with open(path, "r") as f:
-          out = json.load(f)
-          for i in out['payload']['rpms']['Everything']['x86_64']:
-               name =  re.split('-[0-9]:', i)[0]
-               # version = '-'.join(i.rsplit('-', 2)[1:]).rsplit('.', 2)[0]
-               first_num_of_version = re.split(":", i)[0][-1]
-               others_nums_of_version = re.split(":", 
-                                                re.split("[.]fc", i)[0])[1]
-               version = first_num_of_version + ":" + others_nums_of_version
-               human_readable_out = (name, version)
-               List.append(human_readable_out)
+#change approach, instead of using a list, the dictionary data structure helps
+def load_packages(path, arch="x86_64"):
+    # here is I used a path to a package
+    init_key = "payload"
+    packet_management = "rpms"
+    visibility = "Everything"
+    # Created a dict which fill in by elements and has name and version of each package
+    temp_dict = {}
+    with open(path, "r") as f:
+        out = json.load(f)
+        packages_list = out[init_key][packet_management][visibility][arch]
+        for i in packages_list:
+            name = full_package_string.rsplit("-", 2)[0]
+            version = '-'.join(full_package_string.rsplit('-', 2)[1:]).rsplit('.', 2)[0]
+            temp_dict[name] = version
+        
+    return temp_dict
 
 
 while True:
@@ -185,7 +190,7 @@ with open(out_file, "w") as f:
                         if package[0] not in removed]
     current_release.sort()
 
-    for i,j in zip(versions_f1, versions_f2):
+    for i,j in zip(previous_release, current_release):
         # decompose version to compare between each other
         ver1 = re.split(':|[.]|-', i[1])
         ver2 = re.split(':|[.]|-', j[1])
