@@ -5,42 +5,32 @@ import os
 import json
 import sys
 
-# assignee a link 
+# Assignee a link 
 link = "https://kojipkgs.fedoraproject.org/compose/rawhide/"
 metadata = "compose/metadata/"
 list_of_packages = "rpms.json"
-file_name = "example.html"
 
 def search_release(input):
     """Return decimal release"""
     num_release = re.search('[0-9]{8}.n.[0-9]', input)
     return num_release
 
-
-# read a content from link
-with urllib.request.urlopen(link) as response:
-    body = response.read()
-
-# save it to a file
-with open(file_name, mode="wb") as html_file:
-    html_file.write(body)
-
-list_of_releases = []
-
-with open(file_name, mode="r") as f:
-    releases = f.readlines()
-    for i in releases:
-        m = search_release(i)
-        if m != None:
-               list_of_releases.append(m.group())
-
-list_of_releases.append("Exit")
-
 def termination(item):
      if item == "Exit":
           print("Termination...")
-          os.remove(file_name)
           sys.exit(0)
+
+# Read the content dirctly without any temporary file
+with urllib.request.urlopen(link) as r:
+    body = response.read().decode('utf-8')
+
+list_of_releases = []
+for release in body.splitlines():
+    m = search_release(release)
+    if m != None:
+        list_of_releases.append(m.group())
+
+list_of_releases.append("Exit")
 
 
 def print_menu():
@@ -137,12 +127,12 @@ while True:
 
      break
 
-print(f"Selected releases:\n{f1} and {f2}")
-
 # f1 is old release, f2 is latest
 reorder_releases = determine_release(f1,f2)
 f1 = reorder_releases[0]
 f2 = reorder_releases[1]
+
+print(f"Selected releases:\n{f1} and {f2}")
 
 # create dirs
 os.mkdir(f1)
@@ -213,7 +203,6 @@ with open(out_file, "r") as f:
     f.read()
 
 # clean up
-os.remove(file_name)
 os.remove(file_path_f1)
 os.remove(file_path_f2)
 os.rmdir(determine_release(f1,f2)[0])
