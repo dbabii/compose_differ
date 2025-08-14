@@ -9,6 +9,7 @@ import sys
 link = "https://kojipkgs.fedoraproject.org/compose/rawhide/"
 metadata = "compose/metadata/"
 list_of_packages = "rpms.json"
+width = 2
 
 def search_release(input):
     """Return decimal release"""
@@ -20,7 +21,7 @@ def termination(item):
           print("Termination...")
           sys.exit(0)
 
-# Read the content dirctly without any temporary file
+# Read the content directly without any temporary file
 with urllib.request.urlopen(link) as r:
     body = r.read().decode('utf-8')
 
@@ -29,7 +30,6 @@ for release in body.splitlines():
     m = search_release(release)
     if m != None:
         list_of_releases.append(m.group())
-
 list_of_releases.append("Exit")
 
 
@@ -84,28 +84,28 @@ def load_packages(path):
 
 def what_happend_with_package(old, new, action):
     cats = ('REMOVED', 'ADDED', 'CHANGED')
-    width = 9
+    len_status = len(max(cats)) + width
     lits_of_obj = {}
     match action: # "REMOVED", "ADDED", "CHANGED"
         case "REMOVED":
           for name, version in old.items():
                # print(package[0])
                if name not in new:
-                    lits_of_obj[name] = f"{cats[0].ljust(width)} ({name}-{version})"
+                    lits_of_obj[name] = f"{cats[0].ljust(len_status)} ({name}-{version})"
                
           return lits_of_obj
                     
         case "ADDED":
           for name, version in new.items():
                if name not in old:
-                    lits_of_obj[name] = f"{cats[1].ljust(width)} ({name}-{version})"
+                    lits_of_obj[name] = f"{cats[1].ljust(len_status)} ({name}-{version})"
                     # print(package)
           return lits_of_obj
 
         case "CHANGED":
           for name, version in new.items():
                if new.get(name) != old.get(name):
-                   lits_of_obj[name] = f"{cats[2].ljust(width)} {old.get(name)} -> {new.get(name)}"
+                   lits_of_obj[name] = f"{cats[2].ljust(len_status)} {old.get(name)} -> {new.get(name)}"
                #     print(package)
           return lits_of_obj
         case _:
