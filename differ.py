@@ -2,13 +2,11 @@
 import re
 from urllib import error
 from urllib import request
-# import urllib.error
-# import urllib.request
 import os
 import json
 import sys
 
-# Assignee a link 
+# Assignee a link
 link = "https://kojipkgs.fedoraproject.org/compose/rawhide/"
 metadata = "compose/metadata/"
 list_of_packages = "rpms.json"
@@ -20,15 +18,15 @@ def search_release(input):
     return num_release
 
 def termination(item):
-     if item == "Exit":
-          print("Termination...")
-          sys.exit(0)
+    if item == "Exit":
+        print("Termination...")
+        sys.exit(0)
 
 def url_of_release(release):
-     """Creating a direct URL to specific package from the release list"""
-     rel = f"Fedora-Rawhide-{release}/"
-     url = link + rel + metadata + list_of_packages
-     return url
+    """Creating a direct URL to specific package from the release list"""
+    rel = f"Fedora-Rawhide-{release}/"
+    url = link + rel + metadata + list_of_packages
+    return url
 
 # Read the content directly without any temporary file
 try:
@@ -51,7 +49,6 @@ for release in list_of_releases:
      try:
           request.urlopen(url_of_release(release))
      except error.HTTPError:
-          print("It's minor release, there is no metadata package")  
           list_of_releases.remove(release)
           list_of_unavailable_releases.append(release)
 
@@ -84,8 +81,7 @@ def return_value(index):
 
 
 def determine_release(release1, release2):
-     """Return latest release
-     """
+     """Return latest release"""
      num1 = int(re.sub(r'.n.', '', release1))
      num2 = int(re.sub(r'.n.', '', release2))
 
@@ -97,17 +93,17 @@ def determine_release(release1, release2):
           new = release2
      return old, new
 
-#change approach, instead of using a list, the dictionary data structure helps
-def load_packages(path):
+def load_packages(url):
     # here is I used a path to a package
     init_key = "payload"
     packet_management = "rpms"
     section = "Everything"
-    arch="x86_64"
+    arch = "x86_64"
     # Created a dict which fills in by elements and has name and version of each package
     temp_dict = {}
-    with open(path, "r") as f:
-        out = json.load(f)
+    with request.urlopen(url) as f:
+        json_data = f.read().decode('utf-8')
+        out = json.loads(json_data)
         packages_list = out[init_key][packet_management][section][arch]
         for full_package_string in packages_list:
             name = full_package_string.rsplit("-", 2)[0]
@@ -147,8 +143,8 @@ def what_happend_with_package(old, new, action):
 
 # TODO: need to rewrite: first, asking about how much past X days user want to get a list with releases, second - display exactly the list contains only releases for this past X days, third - provide an option to choose
 if list_of_unavailable_releases:
-     print("Not available releases: ")
-     for i in list_of_unavailable_releases:
+    print("Not available releases: ")
+    for i in list_of_unavailable_releases:
           print('i', end=width)
 
 print_menu()
@@ -156,7 +152,7 @@ print_menu()
 first_release = select_release("first")
 f1 = return_value(first_release)
 termination(f1)
-remove_first = list_of_releases.pop(first_release - 1)
+list_of_releases.pop(first_release - 1)
 
 print_menu()
 
@@ -166,35 +162,21 @@ termination(f2)
 
 ## f1 is old release, f2 is latest
 reorder_releases = determine_release(f1,f2)
-f1 = reorder_releases[0]
-f2 = reorder_releases[1]
+old_release, new_release = reorder_releases[0], reorder_releases[1]
 
-print(f"Selected releases:\n{f1} and {f2}")
+for i in list_of_releases:
+    print(i, end=" " * width)
 
-## create dirs
-os.mkdir(f1)
-os.mkdir(f2)
+print(f"\nSelected releases:\n\t{old_release} and {new_release}\n")
 
-# created pathes where jsons will be saved
-file_path_f1 = os.path.join(f1, list_of_packages)
-file_path_f2 = os.path.join(f2, list_of_packages)
-
-## Download for first release
-request.urlretrieve(url_of_release(f1), file_path_f1)
-print(f"File downloaded: {file_path_f1}")
-
-##  Download for second release
-request.urlretrieve(url_of_release(f2), file_path_f2)
-print(f"File downloaded: {file_path_f2}")
-
-old_release = load_packages(file_path_f1)
-current_release = load_packages(file_path_f2)
+old_packages = load_packages(url_of_release(old_release))
+new_packages = load_packages(url_of_release(new_release))
 
 out_file = f"output_{f1}_{f2}.txt"   
 # Creating 3 different dicts
-removed = what_happend_with_package(old_release, current_release, "REMOVED")
-added = what_happend_with_package(old_release, current_release, "ADDED")
-changed = what_happend_with_package(old_release, current_release, "CHANGED")
+removed = what_happend_with_package(old_packages, new_packages, "REMOVED")
+added = what_happend_with_package(old_packages, new_packages, "ADDED")
+changed = what_happend_with_package(old_packages, new_packages, "CHANGED")
 # Making final dictinonary by using unions of created dictinaries and sort it
 final_dict = changed | added | removed
 
@@ -206,11 +188,5 @@ with open(out_file, 'w') as file:
      for name, version in final_dict.items():
           file.write(f"{name.ljust(max_len)}\t{version}\n")
           
-with open(out_file, "r") as file:     
-    print(file.read())
-
-## Clean up
-os.remove(file_path_f1)
-os.remove(file_path_f2)
-os.rmdir(determine_release(f1,f2)[0])
-os.rmdir(determine_release(f1,f2)[1])
+# with open(out_file, "r") as file:     
+#     print(file.read())
