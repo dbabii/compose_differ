@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import re
-import urllib.request
+from urllib import error
+from urllib import request
+# import urllib.error
+# import urllib.request
 import os
 import json
 import sys
@@ -13,7 +16,7 @@ width = 2
 
 def search_release(input):
     """Return decimal release"""
-    num_release = re.search('[0-9]{8}.n.[0-9]', input)
+    num_release = re.search('[0-9]{8}[.]n[.][0-9]+', input)
     return num_release
 
 def termination(item):
@@ -21,15 +24,37 @@ def termination(item):
           print("Termination...")
           sys.exit(0)
 
+def url_of_release(release):
+     """Creating a direct URL to specific package from the release list"""
+     rel = f"Fedora-Rawhide-{release}/"
+     url = link + rel + metadata + list_of_packages
+     return url
+
 # Read the content directly without any temporary file
-with urllib.request.urlopen(link) as r:
-    body = r.read().decode('utf-8')
+try:
+    with request.urlopen(link) as r:
+        body = r.read().decode('utf-8')
+except error.HTTPError as e:
+    print(f"Unable to connect to {link}\nError: {e}")
+    sys.exit(1)
 
 list_of_releases = []
+list_of_unavailable_releases = []
+
 for release in body.splitlines():
     m = search_release(release)
     if m != None:
         list_of_releases.append(m.group())
+
+# Here, the list with releases is checked and return the updated list
+for release in list_of_releases:
+     try:
+          request.urlopen(url_of_release(release))
+     except error.HTTPError:
+          print("It's minor release, there is no metadata package")  
+          list_of_releases.remove(release)
+          list_of_unavailable_releases.append(release)
+
 list_of_releases.append("Exit")
 
 
@@ -38,16 +63,25 @@ def print_menu():
      for num, release in enumerate(list_of_releases, start=1):
         print(num, release)
 
+def select_release(order):
+     is_valid_input = False
+     while not is_valid_input:
+          try:
+               num = int(input(f"Select the {order} release: "))
+               if 1 <= num <= len(list_of_releases):
+                   is_valid_input = True
+                   return num
+               else:
+                   print(f"Select number between 1 and last release {len(list_of_releases) - 1}. Or choose {list_of_releases[-1]} by typing {len(list_of_releases)}")
+          except ValueError:
+               print("Invalid input, please choose a number")
+
+
 def return_value(index):
      """Return a value from the release list"""
      val = list_of_releases[index - 1]
      return val
 
-def url_of_release(release):
-     """Creating a direct URL to specific package from the release list"""
-     rel = f"Fedora-Rawhide-{release}/"
-     url = link + rel + metadata + list_of_packages
-     return url
 
 def determine_release(release1, release2):
      """Return latest release
@@ -112,48 +146,23 @@ def what_happend_with_package(old, new, action):
             termination()
 
 # TODO: need to rewrite: first, asking about how much past X days user want to get a list with releases, second - display exactly the list contains only releases for this past X days, third - provide an option to choose
-while True:
-     print_menu()
-     try:
-         first_release = int(input("Select the first release: "))
-     except ValueError:
-          print("Please enter number")
-          continue
-     
-     f1 = return_value(first_release)
+if list_of_unavailable_releases:
+     print("Not available releases: ")
+     for i in list_of_unavailable_releases:
+          print('i', end=width)
 
-     termination(f1)
-     
-     try:
-          urllib.request.urlopen(url_of_release(f1))
-     except urllib.error.HTTPError:
-          print("It's minor release, there is no metadata package")  
-          list_of_releases.pop(first_release - 1)
-          print_menu()
-          continue
+print_menu()
 
-     remove_first = list_of_releases.pop(first_release - 1)
+first_release = select_release("first")
+f1 = return_value(first_release)
+termination(f1)
+remove_first = list_of_releases.pop(first_release - 1)
 
-     print_menu()
-     try:
-        second_release = int(input("Select the second release: "))
-     except ValueError:
-         print("Please enter the number")
-         continue
-     
-     f2 = return_value(second_release)
+print_menu()
 
-     termination(f2)
-
-     try:
-          urllib.request.urlopen(url_of_release(f2))
-     except urllib.error.HTTPError:
-          print("It's minor release, there is no metadata package")  
-          list_of_releases.pop(second_release - 1)
-          print_menu()
-          continue
-
-     break
+second_release = select_release("second")
+f2 = return_value(second_release)
+termination(f2)
 
 ## f1 is old release, f2 is latest
 reorder_releases = determine_release(f1,f2)
@@ -171,11 +180,11 @@ file_path_f1 = os.path.join(f1, list_of_packages)
 file_path_f2 = os.path.join(f2, list_of_packages)
 
 ## Download for first release
-urllib.request.urlretrieve(url_of_release(f1), file_path_f1)
+request.urlretrieve(url_of_release(f1), file_path_f1)
 print(f"File downloaded: {file_path_f1}")
 
 ##  Download for second release
-urllib.request.urlretrieve(url_of_release(f2), file_path_f2)
+request.urlretrieve(url_of_release(f2), file_path_f2)
 print(f"File downloaded: {file_path_f2}")
 
 old_release = load_packages(file_path_f1)
