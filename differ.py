@@ -155,7 +155,7 @@ while True:
 
      break
 
-# ## f1 is old release, f2 is latest
+## f1 is old release, f2 is latest
 reorder_releases = determine_release(f1,f2)
 f1 = reorder_releases[0]
 f2 = reorder_releases[1]
@@ -186,10 +186,7 @@ out_file = f"output_{f1}_{f2}.txt"
 removed = what_happend_with_package(old_release, current_release, "REMOVED")
 added = what_happend_with_package(old_release, current_release, "ADDED")
 changed = what_happend_with_package(old_release, current_release, "CHANGED")
-# Making final dictinonary by using unions of created dictinaries 
-# added |= removed
-# changed |= added
-
+# Making final dictinonary by using unions of created dictinaries and sort it
 final_dict = changed | added | removed
 
 final_dict = dict(sorted(final_dict.items(), key = lambda i: i[0]))
@@ -201,7 +198,7 @@ with open(out_file, 'w') as file:
           file.write(f"{name.ljust(max_len)}\t{version}\n")
           
 with open(out_file, "r") as file:     
-    file.read()    
+    print(file.read())
 
 ## Clean up
 os.remove(file_path_f1)
