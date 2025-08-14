@@ -22,7 +22,7 @@ def termination(item):
 
 # Read the content dirctly without any temporary file
 with urllib.request.urlopen(link) as r:
-    body = response.read().decode('utf-8')
+    body = r.read().decode('utf-8')
 
 list_of_releases = []
 for release in body.splitlines():
@@ -55,35 +55,63 @@ def determine_release(release1, release2):
      num1 = int(re.sub(r'.n.', '', release1))
      num2 = int(re.sub(r'.n.', '', release2))
 
-
      if num1 > num2:
           old = release2
           new = release1
      else:
           old = release1
           new = release2
-     
      return old, new
 
 #change approach, instead of using a list, the dictionary data structure helps
-def load_packages(path, arch="x86_64"):
+def load_packages(path):
     # here is I used a path to a package
     init_key = "payload"
     packet_management = "rpms"
-    visibility = "Everything"
-    # Created a dict which fill in by elements and has name and version of each package
+    section = "Everything"
+    arch="x86_64"
+    # Created a dict which fills in by elements and has name and version of each package
     temp_dict = {}
     with open(path, "r") as f:
         out = json.load(f)
-        packages_list = out[init_key][packet_management][visibility][arch]
-        for i in packages_list:
+        packages_list = out[init_key][packet_management][section][arch]
+        for full_package_string in packages_list:
             name = full_package_string.rsplit("-", 2)[0]
             version = '-'.join(full_package_string.rsplit('-', 2)[1:]).rsplit('.', 2)[0]
-            temp_dict[name] = version
-        
+            temp_dict[name] = version        
     return temp_dict
 
 
+def what_happend_with_package(old, new, action):
+    cats = ('REMOVED', 'ADDED', 'CHANGED')
+    width = 9
+    lits_of_obj = {}
+    match action: # "REMOVED", "ADDED", "CHANGED"
+        case "REMOVED":
+          for name, version in old.items():
+               # print(package[0])
+               if name not in new:
+                    lits_of_obj[name] = f"{cats[0].ljust(width)} ({name}-{version})"
+               
+          return lits_of_obj
+                    
+        case "ADDED":
+          for name, version in new.items():
+               if name not in old:
+                    lits_of_obj[name] = f"{cats[1].ljust(width)} ({name}-{version})"
+                    # print(package)
+          return lits_of_obj
+
+        case "CHANGED":
+          for name, version in new.items():
+               if new.get(name) != old.get(name):
+                   lits_of_obj[name] = f"{cats[2].ljust(width)} {old.get(name)} -> {new.get(name)}"
+               #     print(package)
+          return lits_of_obj
+        case _:
+            termination()
+
+# TODO: need to rewrite: first, asking about how much past X days user want to get a list with releases, second - display exactly the list contains only releases for this past X days, third - provide an option to choose
 while True:
      print_menu()
      try:
@@ -127,14 +155,14 @@ while True:
 
      break
 
-# f1 is old release, f2 is latest
+# ## f1 is old release, f2 is latest
 reorder_releases = determine_release(f1,f2)
 f1 = reorder_releases[0]
 f2 = reorder_releases[1]
 
 print(f"Selected releases:\n{f1} and {f2}")
 
-# create dirs
+## create dirs
 os.mkdir(f1)
 os.mkdir(f2)
 
@@ -142,67 +170,40 @@ os.mkdir(f2)
 file_path_f1 = os.path.join(f1, list_of_packages)
 file_path_f2 = os.path.join(f2, list_of_packages)
 
-# download for first release
+## Download for first release
 urllib.request.urlretrieve(url_of_release(f1), file_path_f1)
 print(f"File downloaded: {file_path_f1}")
 
-# download for second release
+##  Download for second release
 urllib.request.urlretrieve(url_of_release(f2), file_path_f2)
 print(f"File downloaded: {file_path_f2}")
 
-versions_f1 = []
-versions_f2 = []
-
-load_packages(file_path_f1, versions_f1)
-load_packages(file_path_f2, versions_f2)  
+old_release = load_packages(file_path_f1)
+current_release = load_packages(file_path_f2)
 
 out_file = f"output_{f1}_{f2}.txt"   
+# Creating 3 different dicts
+removed = what_happend_with_package(old_release, current_release, "REMOVED")
+added = what_happend_with_package(old_release, current_release, "ADDED")
+changed = what_happend_with_package(old_release, current_release, "CHANGED")
+# Making final dictinonary by using unions of created dictinaries 
+# added |= removed
+# changed |= added
 
-with open(out_file, "w") as f:
-    names_in_list1 = [name[0] for name in versions_f1]
-    names_in_list2 = [name[0] for name in versions_f2]
-    removed = [name for name in versions_f1 if name[0] not in names_in_list2]
-    added = [name for name in versions_f2 if name[0] not in names_in_list1]
-    # Creating Added list of packages to current release 
-    for i in added:
-        f.write(f"{i[0]}\tAdded\t({i[0]}-{i[1]})\n")
+final_dict = changed | added | removed
 
-    # Creating Removed list of packages from current release  
-    for i in removed:
-        f.write(f"{i[0]}\tRemoved\t({i[0]}-{i[1]})\n")
+final_dict = dict(sorted(final_dict.items(), key = lambda i: i[0]))
+# Determine max length of name packets for alignment
+max_len = max(len(name) for name in list(final_dict.keys())) + 2
 
-    # Creating a two list without Added and Removed lists for comparing versions
-    previous_release = [package for package in versions_f1 
-                        if package[0] not in added]
-    previous_release.sort()
-    # try to make sort in one command, if doesn't work - make additional vars
-    current_release = [package for package in versions_f2
-                        if package[0] not in removed]
-    current_release.sort()
+with open(out_file, 'w') as file:
+     for name, version in final_dict.items():
+          file.write(f"{name.ljust(max_len)}\t{version}\n")
+          
+with open(out_file, "r") as file:     
+    file.read()    
 
-    for i,j in zip(previous_release, current_release):
-        # decompose version to compare between each other
-        ver1 = re.split(':|[.]|-', i[1])
-        ver2 = re.split(':|[.]|-', j[1])
-
-        if i[0] == j[0]:
-        # compare versions
-              for k,m in zip(ver1, ver2):
-               try:
-                    k = int(k)
-                    m = int(m)
-               except ValueError:
-                    k = str(k)
-                    m = str(k)
-               if k < m:
-                    f.write(f'{i[0]}\tversion is upgraded: {i[1]} -> {j[1]}\n')
-                    break
-               elif k > m:
-                    f.write(f'{i[0]}\tversion is downgrade: {i[1]} -> {j[1]}\n')
-with open(out_file, "r") as f:
-    f.read()
-
-# clean up
+## Clean up
 os.remove(file_path_f1)
 os.remove(file_path_f2)
 os.rmdir(determine_release(f1,f2)[0])
