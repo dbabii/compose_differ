@@ -5,12 +5,15 @@ from urllib import request
 import os
 import json
 import sys
+from datetime import datetime, timedelta
 
 # Assignee a link
 link = "https://kojipkgs.fedoraproject.org/compose/rawhide/"
 metadata = "compose/metadata/"
 list_of_packages = "rpms.json"
 width = 2
+# User input
+input_days = None
 
 def search_release(input):
     """Return decimal release"""
@@ -27,6 +30,37 @@ def url_of_release(release):
     rel = f"Fedora-Rawhide-{release}/"
     url = link + rel + metadata + list_of_packages
     return url
+
+def print_help():
+    """Display Help Menu"""
+    print("Run: 'python differ.py <days>' or 'python differ.py all'")
+    print("\tdays: the number of past days")
+    print("\t\tEnter '0' to see only today's releases")
+    print("\t\tIf no arguments are provided, you will be asked")
+    print("\t\tall: display all available releases")
+    print("\t-h: shows this menu")
+
+if len(sys.argv) > 2:
+    print("Needs only one argument")
+elif len(sys.argv) == 2:
+    if sys.argv[1]  in ("-h", "--help"):
+        print_help()
+        input_days = sys.argv
+else:
+    input_days = input("How many days ago do you want to see a list? (Type 'All' for all releases): ")
+
+# Logic about days
+list_of_days = True
+# here is will take all variation of 'all': All, ALL, AlL, aLL, etc
+if input_days.lower() == 'all':
+    list_of_days = False
+    print("All available releases:")
+else:
+    try:
+        input_days = int(input_days)
+    except ValueError:
+        print("Invalid input. Must be a number of days or 'All'")
+        sys.exit(1)
 
 # Read the content directly without any temporary file
 try:
