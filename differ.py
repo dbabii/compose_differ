@@ -70,7 +70,9 @@ except error.HTTPError as e:
     print(f"Unable to connect to {link}\nError: {e}")
     sys.exit(1)
 
+# Declaration of lists: 1st - for all releases, 2nd - shorted by date, last - for missing files
 list_of_releases = []
+final_list_releases = []
 list_of_unavailable_releases = []
 
 for release in body.splitlines():
@@ -78,14 +80,18 @@ for release in body.splitlines():
     if m != None:
         list_of_releases.append(m.group())
 
-# Here, the list with releases is checked and return the updated list
-for release in list_of_releases:
-     try:
-          request.urlopen(url_of_release(release))
-     except error.HTTPError:
-          list_of_releases.remove(release)
-          list_of_unavailable_releases.append(release)
-
+# Calculating releases for last X days
+if list_of_days:
+    today = datetime.now().date()
+    last_days = today - timedelta(days=input_days)
+    
+    for release in list_of_releases:
+        release_day_str = release.split('.')[0]
+        release_day = datetime.strptime(release_day_str, '%Y%m%d').date()
+        if release_day >= last_days:
+            final_list_releases.append(release)
+        
+list_of_releases = final_list_releases
 list_of_releases.append("Exit")
 
 
